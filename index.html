@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>توقع جنس المولود</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>توقع جنس المولود بناءً على الصورة</h1>
+        <input type="file" id="imageUpload" accept="image/*">
+        <button id="predictButton" disabled>توقع الآن</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // استبدل هذا الرابط برابط نموذج Teachable Machine الخاص بك
+        const modelURL = 'https://teachablemachine.withgoogle.com/models/QQkfzkgoP/';
+        let model, webcam, labelContainer, maxPredictions;
+        const imageUpload = document.getElementById('imageUpload');
+        const predictButton = document.getElementById('predictButton');
+        const resultDiv = document.getElementById('result');
+
+        async function init() {
+            const modelURL = URL + 'model.json';
+            const metadataURL = URL + 'metadata.json';
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+            predictButton.disabled = false;
+        }
+
+        async function predict() {
+            // تحميل الصورة المحددة
+            const image = document.getElementById('imageUpload');
+            const prediction = await model.predict(image);
+
+            // ترتيب الاحتمالات وعرض النتيجة الأعلى
+            prediction.sort((a, b) => b.probability - a.probability);
+            const topPrediction = prediction[0];
+
+            if (topPrediction.className === 'ولد') {
+                resultDiv.innerText = `نتوقع أن يكون المولود: ولد (${(topPrediction.probability * 100).toFixed(2)}%)`;
+            } else if (topPrediction.className === 'بنت') {
+                resultDiv.innerText = `نتوقع أن تكون المولودة: بنت (${(topPrediction.probability * 100).toFixed(2)}%)`;
+            } else {
+                resultDiv.innerText = 'لم نتمكن من تحديد الجنس بدقة.';
+            }
+        }
+
+        // استيراد مكتبة Teachable Machine Image
+        import('@teachablemachine/image')
+            .then((tmImage) => {
+                // تهيئة النموذج عند تحميل الصفحة
+                const URL = 'https://teachablemachine.withgoogle.com/models/QQkfzkgoP/';
+                init();
+
+                // تفعيل زر التوقع عند اختيار صورة
+                imageUpload.addEventListener('change', () => {
+                    if (imageUpload.files && imageUpload.files[0]) {
+                        predictButton.disabled = false;
+                    } else {
+                        predictButton.disabled = true;
+                        resultDiv.innerText = '';
+                    }
+                });
+
+                // الاستماع لحدث الضغط على زر التوقع
+                predictButton.addEventListener('click', predict);
+            })
+            .catch((error) => {
+                console.error('حدث خطأ أثناء تحميل مكتبة Teachable Machine:', error);
+                resultDiv.innerText = 'حدث خطأ في تحميل النموذج.';
+            });
+    </script>
+</body>
+</html>
