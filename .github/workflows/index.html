@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تصنيف الطفل - بنت أم ولد</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .custom-upload {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #output {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+        .image-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>تصنيف الطفل: بنت أم ولد</h1>
+        <input type="file" id="imageInput" accept="image/*">
+        <label for="imageInput" class="custom-upload">اختر صورة</label>
+        <div id="preview">
+            <img id="previewImage" class="image-preview" alt="معاينة الصورة">
+        </div>
+        <div id="output">يرجى اختيار صورة للبدء.</div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="./model/metadata.json"></script>
+    <script>
+        const fileInput = document.getElementById('imageInput');
+        const previewImage = document.getElementById('previewImage');
+        const output = document.getElementById('output');
+
+        // تحميل النموذج
+        let model;
+        async function loadModel() {
+            model = await tf.loadLayersModel('./model/model.json');
+            output.textContent = 'النموذج جاهز للاستخدام.';
+        }
+
+        // قراءة الصورة ومعالجتها
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async function (e) {
+                    previewImage.src = e.target.result;
+
+                    const imgElement = new Image();
+                    imgElement.src = e.target.result;
+                    imgElement.onload = async function () {
+                        const tensor = tf.browser.fromPixels(imgElement)
+                            .resizeNearestNeighbor([224, 224]) // تغيير الحجم ليناسب النموذج
+                            .toFloat()
+                            .expandDims();
+                        
+                        const prediction = await model.predict(tensor).data();
+                        const result = prediction[0] > prediction[1] ? 'بنت' : 'ولد';
+                        output.textContent = `النتيجة: الطفل ${result}`;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // تحميل النموذج عند فتح الصفحة
+        loadModel();
+    </script>
+</body>
+</html>
